@@ -110,8 +110,13 @@ func buildRoutes(cfg *Config) (map[string]*RegistryConfig, *RegistryConfig) {
 		if r.Enabled != nil && !*r.Enabled {
 			continue // disabled via UI
 		}
-		for _, h := range r.Hosts {
-			idx[strings.ToLower(h)] = r
+		for _, h := range registryIndexHosts(r) {
+			key := strings.ToLower(h)
+			// Explicit Hosts are registered first and win over the derived
+			// upstream host, so an operator-provided alias is never shadowed.
+			if _, exists := idx[key]; !exists {
+				idx[key] = r
+			}
 		}
 		if r.Name == cfg.Default {
 			def = r
@@ -121,6 +126,28 @@ func buildRoutes(cfg *Config) (map[string]*RegistryConfig, *RegistryConfig) {
 		def = &cfg.Registries[0]
 	}
 	return idx, def
+}
+
+// registryIndexHosts returns every hostname that should route to this registry.
+// Beyond the operator-configured Hosts, it also indexes the upstream's own host
+// so containerd's dynamic-mirror `?ns=<registry>` query — which carries the
+// ORIGINAL registry hostname (e.g. registry.k8s.io, docker.io) rather than the
+// mirror domain — resolves to the correct upstream instead of falling through
+// to the default registry (which previously produced spurious 401s).
+func registryIndexHosts(r *RegistryConfig) []string {
+	hosts := make([]string, 0, len(r.Hosts)+4)
+	hosts = append(hosts, r.Hosts...)
+	if u, err := url.Parse(r.Upstream); err == nil && u.Host != "" {
+		h := strings.ToLower(hostOnly(u.Host))
+		hosts = append(hosts, h)
+		// Clients address Docker Hub as docker.io / index.docker.io, but its
+		// registry API host is registry-1.docker.io. Index the client-facing
+		// names too so ns=docker.io reaches the dockerhub upstream.
+		if h == "registry-1.docker.io" {
+			hosts = append(hosts, "docker.io", "index.docker.io", "registry.docker.io")
+		}
+	}
+	return hosts
 }
 
 func NewProxy(cfg *Config) *Proxy {
@@ -367,23 +394,33 @@ func (p *Proxy) snapshotCacheStats() map[string]interface{} {
 
 // resolveRegistry picks an upstream based on the request Host (or X-Forwarded-Host
 // when running behind a reverse proxy such as nginx/Caddy).
+//
+// A containerd dynamic mirror (hosts.toml with `dynamic = true`) sends every
+// pull to this single endpoint and marks the ORIGINAL registry in the `?ns=`
+// query, so the Host is the proxy's own address rather than a registry domain.
+// We therefore consult `ns` first: without it the request would fall through to
+// the default registry and fail authentication against the wrong upstream.
 func (p *Proxy) resolveRegistry(r *http.Request) *RegistryConfig {
-	host := strings.ToLower(hostOnly(r.Host))
 	p.routeMux.RLock()
-	if reg, ok := p.hostIndex[host]; ok {
-		p.routeMux.RUnlock()
+	defer p.routeMux.RUnlock()
+
+	if r.URL.RawQuery != "" {
+		if ns := strings.ToLower(hostOnly(r.URL.Query().Get("ns"))); ns != "" {
+			if reg, ok := p.hostIndex[ns]; ok {
+				return reg
+			}
+		}
+	}
+	if reg, ok := p.hostIndex[strings.ToLower(hostOnly(r.Host))]; ok {
 		return reg
 	}
 	if fwd := r.Header.Get("X-Forwarded-Host"); fwd != "" {
 		fh := strings.ToLower(hostOnly(fwd))
 		if reg, ok := p.hostIndex[fh]; ok {
-			p.routeMux.RUnlock()
 			return reg
 		}
 	}
-	def := p.defaultReg
-	p.routeMux.RUnlock()
-	return def
+	return p.defaultReg
 }
 
 // hostOnly strips the port from an HTTP Host header value, with full support for

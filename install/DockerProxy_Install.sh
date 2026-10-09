@@ -137,10 +137,10 @@ function SHOW_BANNER() {
 EOF
     if [[ "$SCRIPT_LANG" == "en" ]]; then
         echo "                                    Blog: dqzboy.com"
-        echo "                        Project: https://github.com/dqzboy/Docker-Proxy"
+        echo "                        Project: https://github.com/jtcymc/Docker-Proxy"
     else
         echo "                                    博客: dqzboy.com 浅时光博客"
-        echo "                        项目地址: https://github.com/dqzboy/Docker-Proxy"
+        echo "                        项目地址: https://github.com/jtcymc/Docker-Proxy"
     fi
     echo
     echo "----------------------------------------------------------------------------------------------------------"
@@ -269,7 +269,7 @@ mkdir -p ${PROXY_DIR}
 cd "${PROXY_DIR}"
 
 
-GITRAW="https://raw.githubusercontent.com/dqzboy/Docker-Proxy/main"
+GITRAW="https://raw.githubusercontent.com/jtcymc/Docker-Proxy/main"
 CNGITRAW="https://gitee.com/boydqz/Docker-Proxy/raw/main"
 # 部署环境：foreign 表示国外服务器，domestic 表示中国大陆服务器。
 # 一键安装流程会把该状态传递给 INSTALL_DOCKER_PROXY，避免重复询问并据此决定是否配置上游代理。
@@ -2252,7 +2252,7 @@ if [[ "$SCRIPT_LANG" == "en" ]]; then
     INFO
     INFO "Author blog: https://dqzboy.com"
     INFO "Community: https://t.me/Docker_Proxy"
-    INFO "Repository: https://github.com/dqzboy/Docker-Proxy"
+    INFO "Repository: https://github.com/jtcymc/Docker-Proxy"
     INFO "Contact: https://t.me/RelayHubBot"
     INFO
     INFO "For cloud servers using domains and TLS, open ports 80 and 443 in the security group; otherwise open the service ports above."
@@ -2280,7 +2280,7 @@ else
     INFO
     INFO "作者博客: https://dqzboy.com"
     INFO "项目交流: https://t.me/Docker_Proxy"
-    INFO "代码仓库: https://github.com/dqzboy/Docker-Proxy"
+    INFO "代码仓库: https://github.com/jtcymc/Docker-Proxy"
     INFO "合作联系: https://t.me/RelayHubBot"
     INFO
     INFO "若用云服务器并设域名及证书，需在安全组开放80、443端口；否则开放对应服务监听端口"
@@ -2741,10 +2741,10 @@ INSTALL_ENV() {
         read -e -p "$(INFO "安装环境确认 [${LIGHT_GREEN}国外输1${RESET} ${LIGHT_YELLOW}国内输2${RESET}] > ")" sys_cmd
         case "$sys_cmd" in
             1 )
-                DOWNLOAD_URL="https://raw.githubusercontent.com/dqzboy/Docker-Proxy/main/install/DockerProxy_Install.sh"
+                DOWNLOAD_URL="https://raw.githubusercontent.com/jtcymc/Docker-Proxy/main/install/DockerProxy_Install.sh"
                 break;;
             2 )
-                DOWNLOAD_URL="https://cdn.jsdelivr.net/gh/dqzboy/Docker-Proxy/install/DockerProxy_Install.sh"                
+                DOWNLOAD_URL="https://cdn.jsdelivr.net/gh/jtcymc/Docker-Proxy/install/DockerProxy_Install.sh"                
                 break;;
             * )
                 INFO "请输入 ${LIGHT_GREEN}1${RESET} 表示国外 或者 ${LIGHT_YELLOW}2${RESET} 表示大陆";;

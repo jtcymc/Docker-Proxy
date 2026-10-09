@@ -202,6 +202,47 @@ func TestResolveRegistryIPv6Routes(t *testing.T) {
 	}
 }
 
+// TestResolveRegistryNamespaceQuery covers containerd's dynamic-mirror mode:
+// every pull hits one endpoint (the proxy IP as Host) and the ORIGINAL registry
+// is carried in the `?ns=` query. Without resolving ns the request previously
+// fell through to the default registry and returned a spurious 401.
+func TestResolveRegistryNamespaceQuery(t *testing.T) {
+	enabled := true
+	cfg := &Config{
+		Default: "dockerhub",
+		Registries: []RegistryConfig{
+			{Name: "dockerhub", Hosts: []string{"hub.example"}, Upstream: "https://registry-1.docker.io", Auth: AuthConfig{Type: AuthToken}, Enabled: &enabled},
+			{Name: "k8s", Hosts: []string{"k8s.example"}, Upstream: "https://registry.k8s.io", Auth: AuthConfig{Type: AuthToken}, Enabled: &enabled},
+		},
+	}
+	p := NewProxy(cfg)
+	defer p.stopStatsJanitor()
+
+	cases := []struct {
+		url  string
+		want string
+	}{
+		{"/v2/sig-storage/nfs-subdir-external-provisioner/manifests/v4.0.2?ns=registry.k8s.io", "k8s"},
+		{"/v2/library/nginx/manifests/latest?ns=docker.io", "dockerhub"},
+		{"/v2/foo/manifests/latest?ns=index.docker.io", "dockerhub"},
+		// ns wins over the Host: hub.example is dockerhub, but ns points at k8s.
+		{"/v2/pause/manifests/latest?ns=registry.k8s.io", "k8s"},
+		// Unknown ns falls back to the default registry.
+		{"/v2/foo/manifests/latest?ns=quay.example", "dockerhub"},
+	}
+	for _, tc := range cases {
+		req := httptest.NewRequest(http.MethodHead, tc.url, nil)
+		req.Host = "127.0.0.1:50000"
+		if tc.want == "k8s" && strings.Contains(tc.url, "pause") {
+			req.Host = "hub.example"
+		}
+		reg := p.resolveRegistry(req)
+		if reg == nil || reg.Name != tc.want {
+			t.Errorf("ns route for %q: want %q, got %+v", tc.url, tc.want, reg)
+		}
+	}
+}
+
 // TestStatsJanitorEvictsIdleRecords verifies the cleanup loop is wired up:
 // entries idle longer than statsIdleTimeout must be removed by cleanupIdleStats.
 func TestStatsJanitorEvictsIdleRecords(t *testing.T) {
