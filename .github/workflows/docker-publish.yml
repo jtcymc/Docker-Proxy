@@ -1,0 +1,87 @@
+name: Docker Publish
+
+# 构建并推送镜像到 Docker Hub（命名空间固定为 jtcymc，与一键安装脚本拉取的镜像名一致）
+# - 推送 tag（形如 v1.2.3）：发布 latest + 版本号标签（多架构 linux/amd64、linux/arm64）
+# - 推送到 main 分支：发布 beta 标签
+# - 支持手动触发（workflow_dispatch），可勾选是否同时推送 latest
+#
+# 需要在仓库 Secrets 中配置：
+#   DOCKERHUB_USERNAME = jtcymc        （Docker Hub 用户名/组织名）
+#   DOCKERHUB_TOKEN    = <Access Token> （Docker Hub 访问令牌，Read/Write）
+
+on:
+  push:
+    tags:
+    - 'v*'
+    branches:
+    - main
+  workflow_dispatch:
+    inputs:
+      push_latest:
+        description: '同时推送 latest 标签'
+        type: boolean
+        default: false
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # 仅当配置了 Docker Hub 凭据时才执行
+    if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - component: go-proxy
+          context: ./go-proxy
+          image_suffix: registry
+        - component: hubcmd-ui
+          context: ./hubcmdui
+          image_suffix: hubcmd-ui
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        # 命名空间固定 jtcymc，确保推送的镜像名与安装脚本拉取的一致
+        images: jtcymc/${{ matrix.image_suffix }}
+        tags: |
+          # 由 tag 触发（v1.2.3）时：完整版本号 + 主.次版本
+          type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || inputs.push_latest }}
+          # 由 main 分支推送触发时：beta
+          type=raw,value=beta,enable=${{ github.ref == 'refs/heads/main' }}
+          # 通用：commit 短哈希，便于精确回溯
+          type=sha
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{ matrix.context }}
+        file: ${{ matrix.context }}/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max,scope=${{ matrix.component }}

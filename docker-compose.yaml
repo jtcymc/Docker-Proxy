@@ -1,6 +1,6 @@
 services:
   go-proxy:
-    image: ${REGISTRY_IMAGE:-dqzboy/registry:latest}
+    image: ${REGISTRY_IMAGE:-jtcymc/registry:latest}
     container_name: reg-go-proxy
     restart: always
     environment:
@@ -22,7 +22,7 @@ services:
       - registry-net
 
   hubcmd-ui:
-    image: ${UI_IMAGE:-dqzboy/hubcmd-ui:latest}
+    image: ${UI_IMAGE:-jtcymc/hubcmd-ui:latest}
     container_name: hubcmd-ui
     restart: always
     depends_on:

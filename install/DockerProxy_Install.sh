@@ -275,9 +275,9 @@ CNGITRAW="https://gitee.com/boydqz/Docker-Proxy/raw/main"
 # 一键安装流程会把该状态传递给 INSTALL_DOCKER_PROXY，避免重复询问并据此决定是否配置上游代理。
 DEPLOY_REGION=""
 # docker registry（go-proxy 镜像）
-IMAGE_NAME="dqzboy/registry"
+IMAGE_NAME="jtcymc/registry"
 # hubcmd-ui 管理面板镜像
-UI_IMAGE_NAME="dqzboy/hubcmd-ui"
+UI_IMAGE_NAME="jtcymc/hubcmd-ui"
 DOCKER_COMPOSE_FILE="docker-compose.yaml"
 
 # Registry Domain prefix
@@ -1865,8 +1865,8 @@ SESSION_SECRET=$session_secret
 
 # 镜像地址 (可选覆盖, 等号右侧为默认值)
 # 若构建时未选择 latest 标签, 请在此显式指定对应标签, 否则默认拉取 :latest 会失败
-REGISTRY_IMAGE=dqzboy/registry:latest
-UI_IMAGE=dqzboy/hubcmd-ui:latest
+REGISTRY_IMAGE=jtcymc/registry:latest
+UI_IMAGE=jtcymc/hubcmd-ui:latest
 EOF
     chmod 600 "${PROXY_DIR}/.env"
     if [[ "$SCRIPT_LANG" == "en" ]]; then
@@ -1939,6 +1939,8 @@ if [[ "$SCRIPT_LANG" == "en" ]]; then
 else
     INFO "拉取镜像并启动 Docker 镜像加速 ..."
 fi
+# 部署前清理可能残留的旧 dqzboy/* 镜像与容器，确保迁移到 jtcymc/*
+CLEANUP_LEGACY_IMAGES
 $DOCKER_COMPOSE_CMD -f "${PROXY_DIR}/${DOCKER_COMPOSE_FILE}" up -d
 if [ $? -ne 0 ]; then
     if [[ "$SCRIPT_LANG" == "en" ]]; then
@@ -2165,6 +2167,24 @@ function REMOVE_NONE_TAG() {
       if [ "$image" != "$latest" ];then
         docker rmi $image
       fi
+    done
+}
+
+# 迁移清理：早期版本使用 dqzboy/* 镜像，切换到 jtcymc/* 后需停止并删除旧容器与旧镜像，
+# 避免残留的 dqzboy/registry、dqzboy/hubcmd-ui 容器继续运行或占用固定 container_name。
+function CLEANUP_LEGACY_IMAGES() {
+    for legacy in "dqzboy/registry" "dqzboy/hubcmd-ui" "dqzboy/registry:latest" "dqzboy/hubcmd-ui:latest"; do
+        # 停止并删除仍在使用旧镜像的容器
+        legacy_cids=$(docker ps -aq --filter "ancestor=${legacy}" 2>/dev/null)
+        if [ -n "$legacy_cids" ]; then
+            docker stop $legacy_cids &>/dev/null
+            docker rm -f $legacy_cids &>/dev/null
+        fi
+        # 删除旧镜像（docker images -q 会匹配该仓库下所有标签）
+        legacy_iids=$(docker images -q "$legacy" 2>/dev/null)
+        if [ -n "$legacy_iids" ]; then
+            docker rmi -f $legacy_iids &>/dev/null
+        fi
     done
 }
 
@@ -2700,6 +2720,8 @@ case $ser_choice in
             ERROR "没有需要更新的服务,请重新选择"
             UPDATE_SERVICE
         else
+            # 更新前清理旧 dqzboy/* 镜像与容器，避免迁移后残留
+            CLEANUP_LEGACY_IMAGES
             $DOCKER_COMPOSE_CMD pull ${selected_services[*]}
             $DOCKER_COMPOSE_CMD up -d --force-recreate ${selected_services[*]}
         fi
@@ -2860,6 +2882,7 @@ RM_SERVICE() {
 RM_ALLSERVICE() {
 STOP_REMOVE_CONTAINER
 REMOVE_NONE_TAG
+CLEANUP_LEGACY_IMAGES
 docker rmi --force $(docker images -q ${IMAGE_NAME}) &>/dev/null
 docker rmi --force $(docker images -q ${UI_IMAGE_NAME}) &>/dev/null
 if [ -d "${PROXY_DIR}" ]; then
