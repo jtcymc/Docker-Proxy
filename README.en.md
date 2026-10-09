@@ -13,11 +13,11 @@
 <div align="center">
 
 [![Auth](https://img.shields.io/badge/Auth-dqzboy-ff69b4)](https://github.com/dqzboy)
-[![GitHub contributors](https://img.shields.io/github/contributors/dqzboy/Docker-Proxy)](https://github.com/dqzboy/Docker-Proxy/graphs/contributors)
-[![GitHub Issues](https://img.shields.io/github/issues/dqzboy/Docker-Proxy.svg)](https://github.com/dqzboy/Docker-Proxy/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/stars/dqzboy/Docker-Proxy)](https://github.com/dqzboy/Docker-Proxy)
-[![HitCount](https://views.whatilearened.today/views/github/dqzboy/Docker-Proxy.svg)](https://github.com/dqzboy/Docker-Proxy)
-[![GitHub license](https://img.shields.io/github/license/dqzboy/Docker-Proxy)](https://github.com/dqzboy/Docker-Proxy/blob/main/LICENSE)
+[![GitHub contributors](https://img.shields.io/github/contributors/jtcymc/Docker-Proxy)](https://github.com/jtcymc/Docker-Proxy/graphs/contributors)
+[![GitHub Issues](https://img.shields.io/github/issues/jtcymc/Docker-Proxy.svg)](https://github.com/jtcymc/Docker-Proxy/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/stars/jtcymc/Docker-Proxy)](https://github.com/jtcymc/Docker-Proxy)
+[![HitCount](https://views.whatilearened.today/views/github/jtcymc/Docker-Proxy.svg)](https://github.com/jtcymc/Docker-Proxy)
+[![GitHub license](https://img.shields.io/github/license/jtcymc/Docker-Proxy)](https://github.com/jtcymc/Docker-Proxy/blob/main/LICENSE)
 
 📢 <a href="https://t.me/+ghs_XDp1vwxkMGU9" style="font-size: 15px;">Docker Proxy TG Group</a>
 
@@ -75,13 +75,13 @@ yum -y install curl
 apt -y install curl
 
 # Overseas environment
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/dqzboy/Docker-Proxy/main/install/DockerProxy_Install.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/jtcymc/Docker-Proxy/main/install/DockerProxy_Install.sh)"
 
 # Domestic environment (CDN acceleration)
-bash -c "$(curl -fsSL https://cdn.jsdelivr.net/gh/dqzboy/Docker-Proxy/install/DockerProxy_Install.sh)"
+bash -c "$(curl -fsSL https://cdn.jsdelivr.net/gh/jtcymc/Docker-Proxy/install/DockerProxy_Install.sh)"
 
 # Domestic GitHub proxy
-bash -c "$(curl -fsSL https://ghp.ci/https://raw.githubusercontent.com/dqzboy/Docker-Proxy/main/install/DockerProxy_Install.sh)"
+bash -c "$(curl -fsSL https://ghp.ci/https://raw.githubusercontent.com/jtcymc/Docker-Proxy/main/install/DockerProxy_Install.sh)"
 ```
 
 > The script automatically: checks and installs Docker / Docker Compose; generates a random `GO_PROXY_ADMIN_TOKEN` and writes it to `.env`; optionally deploys Nginx / Caddy reverse proxy.
@@ -226,8 +226,8 @@ Service listens on `:3000` by default; admin entry at `http://localhost:3000/adm
 
 Thanks to everyone who has contributed!
 
-<a href="https://github.com/dqzboy/Docker-Proxy/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dqzboy/Docker-Proxy" />
+<a href="https://github.com/jtcymc/Docker-Proxy/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jtcymc/Docker-Proxy" />
 </a>
 
 ## ❤ Acknowledgements
